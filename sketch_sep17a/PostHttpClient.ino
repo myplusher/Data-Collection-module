@@ -11,7 +11,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 
-#define SERVER_IP "192.168.0.102:8080"
+#define SERVER_IP "192.168.0.100:8080"
 
 #ifndef STASSID
 #define STASSID "K-WiFi"
@@ -24,7 +24,9 @@ uint8_t LedPin = D7;
 
 // датчик DHT
 #define DHTTYPE DHT11   // DHT 11
-uint8_t DHTPin = D2; 
+uint8_t DHTPin = D2;
+//датчик освещенности 
+#define PIN_PHOTO_SENSOR A0   
 
 // инициализация датчика DHT.
 DHT dht(DHTPin, DHTTYPE);                
@@ -32,6 +34,7 @@ DHT dht(DHTPin, DHTTYPE);
 float Temperature;
 float Humidity;
 float CO2;
+float Light;
 int prevVal = LOW;
 long th, tl, h, l, ppm;
 
@@ -67,17 +70,15 @@ Serial.println(Temperature);
 Serial.println(Humidity);
   long tt = millis();
   int myVal = digitalRead(pwmPin);
-
+  int lightning = analogRead(PIN_PHOTO_SENSOR);
   //Если обнаружили изменение
   if (myVal == HIGH) {
-    digitalWrite(LedPin, HIGH);
     if (myVal != prevVal) {
       h = tt;
       tl = h - l;
       prevVal = myVal;
     }
   }  else {
-    digitalWrite(LedPin, LOW);
     if (myVal != prevVal) {
       l = tt;
       th = l - h;
@@ -88,7 +89,7 @@ Serial.println(Humidity);
   }
   
   CO2 = ppm;  
-
+  Light = lightning;   // получить значение освещенности
   
   // wait for WiFi connection
   if ((WiFi.status() == WL_CONNECTED)) {
@@ -104,9 +105,10 @@ Serial.println(Humidity);
     Serial.print("[HTTP] POST...\n");
     // start connection and send HTTP header and body
     String tempSTR = "{\"temperature\":";
-    String humiditySRT = ",\"humidity\":";
+    String humiditySTR = ",\"humidity\":";
     String co2STR = ",\"co2\":";
-    String reqBody = tempSTR + Temperature + humiditySRT + Humidity + co2STR +CO2 + "}";
+    String lightSTR = ",\"light\":";
+    String reqBody = tempSTR + Temperature + humiditySTR + Humidity + co2STR + CO2 + lightSTR + Light + "}";
     Serial.print(reqBody);
     int httpCode = http.POST(reqBody);
 
@@ -129,5 +131,6 @@ Serial.println(Humidity);
     http.end();
   }
 
+  //delay(3600000);
   delay(10000);
 }
